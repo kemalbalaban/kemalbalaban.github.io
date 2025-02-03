@@ -540,5 +540,54 @@
     gtag('js', new Date());
     gtag('config', 'G-TKSM35R49C');
   </script>
+  <script>
+    // URL'den parametreleri almak için yardımcı fonksiyon
+    function getQueryParam(param) {
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get(param);
+    }
+
+    // Sayfayı PDF'e çevirip indiren fonksiyon
+    async function captureAndDownload() {
+        // URL'de 'download' parametresi var mı kontrol et
+        const shouldDownload = getQueryParam('download');
+        
+        if (shouldDownload === 'true') {
+            try {
+                // Sayfanın ekran görüntüsünü al
+                const canvas = await html2canvas(document.body);
+                
+                // PDF oluştur
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                
+                // Canvas boyutlarını PDF sayfasına uygun şekilde ayarla
+                const imgWidth = 210; // A4 genişliği (mm)
+                const pageHeight = 295; // A4 yüksekliği (mm)
+                const imgHeight = canvas.height * imgWidth / canvas.width;
+                
+                // Canvas'ı PDF'e ekle
+                pdf.addImage(
+                    canvas.toDataURL('image/png'), 
+                    'PNG', 
+                    0, 
+                    0, 
+                    imgWidth, 
+                    imgHeight
+                );
+                
+                // PDF'i indir
+                pdf.save('sayfa_goruntusu.pdf');
+                
+            } catch (error) {
+                console.error('PDF oluşturma hatası:', error);
+                alert('PDF oluşturulurken bir hata oluştu!');
+            }
+        }
+    }
+
+    // Sayfa yüklendiğinde çalıştır
+    window.addEventListener('load', captureAndDownload);
+</script>
   </body>
 </html>
