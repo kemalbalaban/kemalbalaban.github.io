@@ -9,8 +9,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="crossorigin"/>
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;700;800&amp;display=swap"/>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;700;800&amp;display=swap" media="print" onload="this.media='all'"/>
-    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/1.5.3/jspdf.min.js"></script>
-    <script type="text/javascript" src="https://html2canvas.hertzen.com/dist/html2canvas.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <noscript>
       <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;700;800&amp;display=swap"/>
     </noscript>
@@ -541,53 +541,84 @@
     gtag('config', 'G-TKSM35R49C');
   </script>
   <script>
-    // URL'den parametreleri almak için yardımcı fonksiyon
-    function getQueryParam(param) {
-        const urlParams = new URLSearchParams(window.location.search);
-        return urlParams.get(param);
-    }
+  function getQueryParam(param) {
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get(param);
+  }
 
-    // Sayfayı PDF'e çevirip indiren fonksiyon
-    async function captureAndDownload() {
-        // URL'de 'download' parametresi var mı kontrol et
-        const shouldDownload = getQueryParam('download');
-        
-        if (shouldDownload === 'true') {
-            try {
-                // Sayfanın ekran görüntüsünü al
-                const canvas = await html2canvas(document.body);
-                
-                // PDF oluştur
-                const { jsPDF } = window.jspdf;
-                const pdf = new jsPDF('p', 'mm', 'a4');
-                
-                // Canvas boyutlarını PDF sayfasına uygun şekilde ayarla
-                const imgWidth = 210; // A4 genişliği (mm)
-                const pageHeight = 295; // A4 yüksekliği (mm)
-                const imgHeight = canvas.height * imgWidth / canvas.width;
-                
-                // Canvas'ı PDF'e ekle
-                pdf.addImage(
-                    canvas.toDataURL('image/png'), 
-                    'PNG', 
-                    0, 
-                    0, 
-                    imgWidth, 
-                    imgHeight
-                );
-                
-                // PDF'i indir
-                pdf.save('sayfa_goruntusu.pdf');
-                
-            } catch (error) {
-                console.error('PDF oluşturma hatası:', error);
-                alert('PDF oluşturulurken bir hata oluştu!');
-            }
-        }
-    }
+  // Sayfayı PDF'e çevirip indiren fonksiyon
+  async function captureAndDownload() {
+      // URL'de 'download' parametresi var mı kontrol et
+      const shouldDownload = getQueryParam('download');
+      
+      if (shouldDownload === 'true') {
+          try {
+              // Sayfa yüklenene kadar bekle
+              await new Promise(resolve => setTimeout(resolve, 1000));
+              
+              // Scroll animasyonlarının tamamlanmasını bekle
+              window.scrollTo(0, 0);
+              await new Promise(resolve => setTimeout(resolve, 500));
+              
+              // HTML element
+              const element = document.querySelector('.page-content');
+              
+              // HTML2Canvas options
+              const options = {
+                  scale: 2, // Daha yüksek kalite için
+                  useCORS: true, // Cross-origin resimleri işlemek için
+                  logging: false, // Debug loglarını kapat
+                  windowWidth: 1920, // Sabit genişlik
+                  windowHeight: element.scrollHeight
+              };
+              
+              // Sayfanın ekran görüntüsünü al
+              const canvas = await html2canvas(element, options);
+              
+              // PDF oluştur
+              const { jsPDF } = window.jspdf;
+              const pdf = new jsPDF({
+                  orientation: 'portrait',
+                  unit: 'mm',
+                  format: 'a4'
+              });
+              
+              // Canvas boyutlarını PDF sayfasına uygun şekilde ayarla
+              const imgWidth = 210; // A4 genişliği (mm)
+              const pageHeight = 297; // A4 yüksekliği (mm)
+              const imgHeight = canvas.height * imgWidth / canvas.width;
+              
+              // Sayfa sayısını hesapla
+              let heightLeft = imgHeight;
+              let position = 0;
+              
+              // İlk sayfayı ekle
+              pdf.addImage(canvas.toDataURL('image/jpeg', 1.0), 'JPEG', 0, position, imgWidth, imgHeight);
+              heightLeft -= pageHeight;
+              
+              // Gerekirse ek sayfalar ekle
+              while (heightLeft >= 0) {
+                  position = heightLeft - imgHeight;
+                  pdf.addPage();
+                  pdf.addImage(canvas.toDataURL('image/jpeg', 1.0), 'JPEG', 0, position, imgWidth, imgHeight);
+                  heightLeft -= pageHeight;
+              }
+              
+              // PDF'i indir
+              pdf.save('kemal_balaban_cv.pdf');
+              
+          } catch (error) {
+              console.error('PDF oluşturma hatası:', error);
+              alert('PDF oluşturulurken bir hata oluştu!');
+          }
+      }
+  }
 
-    // Sayfa yüklendiğinde çalıştır
-    window.addEventListener('load', captureAndDownload);
-</script>
+  // Sayfa tamamen yüklendiğinde çalıştır
+  window.addEventListener('load', () => {
+      // AOS animasyonlarının tamamlanmasını bekle
+      setTimeout(captureAndDownload, 1500);
+  });  
+  </script>
   </body>
 </html>
